@@ -118,7 +118,7 @@ export function CTASection() {
 
                 <FadeIn delay={0.8}>
                     <div className="mt-16 text-center">
-                        <p className="text-blue-100 mb-4">Questions? We're here to help.</p>
+                        <p className="text-blue-100 mb-4">Questions? We&apos;re here to help.</p>
                         <motion.div
                             whileHover={{ scale: 1.05 }}
                             className="inline-flex items-center gap-2 text-white hover:text-yellow-300 transition-colors cursor-pointer"
