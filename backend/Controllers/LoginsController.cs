@@ -10,9 +10,9 @@ namespace backend.Controllers
     [Route("api/[controller]")]
     public class LoginsController : ControllerBase
     {
-        private readonly Context _context;
+        private readonly Data.CredContext _context;
 
-        public LoginsController(Context context)
+        public LoginsController(Data.CredContext context)
         {
             _context = context;
         }

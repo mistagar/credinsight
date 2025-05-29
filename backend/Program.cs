@@ -9,8 +9,9 @@ using Microsoft.SemanticKernel;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<Context>(options =>
-    options.UseInMemoryDatabase("KycInMemoryDb"));
+builder.Services.AddDbContext<backend.Data.CredContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CredInsightConnection")));
+
 
 
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
@@ -50,6 +51,8 @@ builder.Services.AddSingleton(_ =>
     kernel.Plugins.AddFromObject(PersonalInfoPlugin, "PersonalInfoChecker");
     kernel.Plugins.AddFromObject(PersonalInfoPlugin, "KYCDeepVerificationChecker");
     return kernel;
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+    options.JsonSerializerOptions.WriteIndented = true; //for readability
 });
 
 // Register as a general assistant
@@ -61,7 +64,7 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<Context>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<CredContext>();
     SeedData.Initialize(dbContext);
 }
 

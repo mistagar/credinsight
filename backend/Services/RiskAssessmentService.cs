@@ -8,9 +8,9 @@ namespace backend.Services
 {
     public class RiskAssessmentService : IRiskAssessmentService
     {
-        private readonly Context _context;
+        private readonly Data.CredContext _context;
 
-        public RiskAssessmentService(Context context)
+        public RiskAssessmentService(Data.CredContext context)
         {
             _context = context;
         }
