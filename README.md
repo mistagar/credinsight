@@ -70,3 +70,17 @@ This project uses:
 - Next.js for frontend
 - Entity Framework for data access
 - TypeScript for type-safe JavaScript
+
+## Deployment
+
+The project is set up for automated deployment to Azure Web Apps using GitHub Actions:
+
+### CI/CD Pipelines
+
+- **Backend**: The .NET application is automatically built and deployed to Azure Web App when changes are pushed to the main branch
+- **Frontend**: The Next.js application is built with pnpm and deployed to a separate Azure Web App
+
+### Workflow Files
+
+- `.github/workflows/main_credinsight.yml`: Backend CI/CD pipeline
+- `.github/workflows/main_credinsightui.yml`: Frontend CI/CD pipeline
