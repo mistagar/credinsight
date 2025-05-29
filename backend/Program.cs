@@ -29,7 +29,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
-<<<<<<< HEAD
+
 // Build Semantic Kernel
 builder.Services.AddSingleton(_ =>
 {
@@ -52,8 +52,6 @@ builder.Services.AddSingleton(_ =>
 // Register as a general assistant
 builder.Services.AddScoped<IMainService, MainService>();
 
-=======
->>>>>>> parent of 9563281 (KYC checker Added)
 
 
 var app = builder.Build();
