@@ -10,9 +10,9 @@ namespace backend.Controllers
     [Route("api/[controller]")]
     public class TransactionsController : ControllerBase
     {
-        private readonly Context _context;
+        private readonly Data.CredContext _context;
 
-        public TransactionsController(Context context)
+        public TransactionsController(Data.CredContext context)
         {
             _context = context;
         }

@@ -7,7 +7,7 @@ namespace backend.Data
 {
     public static class SeedData
     {
-        public static void Initialize(Context context)
+        public static void Initialize(CredContext context)
         {
             // Don't seed if there's already data
             if (context.Customers.Any()) return;

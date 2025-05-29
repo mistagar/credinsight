@@ -7,8 +7,9 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<Context>(options =>
-    options.UseInMemoryDatabase("KycInMemoryDb"));
+builder.Services.AddDbContext<backend.Data.CredContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CredInsightConnection")));
+
 
 
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
@@ -31,15 +32,15 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-    options.JsonSerializerOptions.WriteIndented = true; // optional, for readability
+    options.JsonSerializerOptions.WriteIndented = true; //for readability
 });
 
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<Context>();
-    SeedData.Initialize(dbContext); 
+    var dbContext = scope.ServiceProvider.GetRequiredService<CredContext>();
+    SeedData.Initialize(dbContext);
 }
 
 if (app.Environment.IsDevelopment())
