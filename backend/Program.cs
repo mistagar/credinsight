@@ -53,13 +53,13 @@ builder.Services.AddSingleton(_ =>
     // Register your C# plugin
     var TransactionCheckerPlugin = new TransactionsCheckerPlugin();
     var PersonalInfoPlugin = new PersonalInfoCheckerPlugin();
+    var LocationCheckerPlugin = new LocationCheckerPlugin();
     var KYCDeepVerificationCheckerPlugin = new KYCDeepVerificationChecker();
     kernel.Plugins.AddFromObject(TransactionCheckerPlugin, "TransactionChecker");
     kernel.Plugins.AddFromObject(PersonalInfoPlugin, "PersonalInfoChecker");
-    kernel.Plugins.AddFromObject(KYCDeepVerificationCheckerPlugin, "KYCDeepVerificationChecker");
+    kernel.Plugins.AddFromObject(PersonalInfoPlugin, "KYCDeepVerificationChecker");
+    kernel.Plugins.AddFromObject(LocationCheckerPlugin, "LocationChecker");
     return kernel;
-    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-    options.JsonSerializerOptions.WriteIndented = true; //for readability
 });
 
 // Register as a general assistant

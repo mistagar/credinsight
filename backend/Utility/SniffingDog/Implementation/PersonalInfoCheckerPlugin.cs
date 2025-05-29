@@ -23,9 +23,7 @@ Your job is to detect red flags. Consider the following:
 
 If anything looks suspicious, explain clearly. If not, say everything looks good.
 
-Respond in a clear, short format like:
-- Valid: Yes/No
-- Reason: ...
+Respond strictly in this JSON format. no word in fron or back. just json: healthStatus,suspicionLevel,email authenticity, name authenticity, phone number authenticity, explanation. all should between. mild, moderate, severe, and critical
 ";
 
             return prompt;
