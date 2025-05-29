@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using Microsoft.SemanticKernel;
+using System.ComponentModel;
 
 namespace backend.Utility.SniffingDog.Implementation
 {

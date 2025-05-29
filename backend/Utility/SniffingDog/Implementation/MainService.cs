@@ -1,6 +1,7 @@
 ﻿using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
 using backend.Utility.SniffingDog.Interface;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace backend.Utility.SniffingDog.Implementation
 {
@@ -27,10 +28,15 @@ namespace backend.Utility.SniffingDog.Implementation
 
         public async Task<string> SendMessageAsync(string userInput)
         {
+            var settings = new OpenAIPromptExecutionSettings
+            {
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+            };
             _chatHistory.AddUserMessage(userInput);
 
             ChatMessageContent reply = await _chatService.GetChatMessageContentAsync(
                 _chatHistory,
+                executionSettings: settings,
                 kernel: _kernel
             );
 
