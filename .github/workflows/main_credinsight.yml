@@ -23,11 +23,15 @@ jobs:
         with:
           dotnet-version: '8.x'
 
+      # Added step to restore NuGet packages separately to avoid duplicates
+      - name: Restore NuGet packages
+        run: dotnet restore ./backend/backend.csproj
+
       - name: Build with dotnet
-        run: dotnet build ./backend/backend.sln --configuration Release
+        run: dotnet build ./backend/backend.csproj --configuration Release --no-restore
 
       - name: dotnet publish
-        run: dotnet publish ./backend/backend.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish ./backend/backend.csproj -c Release --no-build -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

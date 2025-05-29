@@ -19,10 +19,10 @@ builder.Services.AddDbContext<backend.Data.CredContext>(options =>
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
 
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+    .AddJsonOptions(jsonOptions =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        jsonOptions.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+        jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -56,7 +56,7 @@ builder.Services.AddSingleton(_ =>
     var KYCDeepVerificationCheckerPlugin = new KYCDeepVerificationChecker();
     kernel.Plugins.AddFromObject(TransactionCheckerPlugin, "TransactionChecker");
     kernel.Plugins.AddFromObject(PersonalInfoPlugin, "PersonalInfoChecker");
-    kernel.Plugins.AddFromObject(PersonalInfoPlugin, "KYCDeepVerificationChecker");
+    kernel.Plugins.AddFromObject(KYCDeepVerificationCheckerPlugin, "KYCDeepVerificationChecker");
     return kernel;
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
     options.JsonSerializerOptions.WriteIndented = true; //for readability
