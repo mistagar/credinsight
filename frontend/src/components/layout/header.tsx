@@ -39,6 +39,12 @@ export function Header() {
                     >
                         <div className="ml-10 flex items-baseline space-x-8">
                             <Link
+                                href="/customers"
+                                className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                            >
+                                Customers
+                            </Link>
+                            <Link
                                 href="#features"
                                 className="text-muted-foreground hover:text-foreground transition-colors duration-200"
                             >
