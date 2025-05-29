@@ -35,12 +35,19 @@ jobs:
           pnpm build
           # Uncomment if you have tests
           # pnpm test
+      - name: Copy necessary files for deployment
+        run: |
+          mkdir -p ./dist
+          cp -r ./frontend/.next ./dist/.next
+          cp -r ./frontend/public ./dist/public
+          cp ./frontend/package.json ./dist/package.json
+          cp ./frontend/next.config.ts ./dist/next.config.ts
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: ./frontend/.next
+          path: ./dist
 
   deploy:
     runs-on: ubuntu-latest
