@@ -31,7 +31,7 @@ Here is the new transaction to evaluate:
 {transactionJson}
 
 Based on the trend of the transaction history, determine whether this transaction is suspicious or not. 
-Explain your reasoning clearly and in simple terms.";
+Explain your reasoning clearly and in simple terms. Respond strictly in this JSON format. no word in front or back. just json: healthStatus,suspicionLevel, variation from norm, explanation. all should between mild, moderate, severe, and critical";
 
             return prompt;
         }
