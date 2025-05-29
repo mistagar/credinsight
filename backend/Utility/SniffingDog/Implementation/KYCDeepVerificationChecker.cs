@@ -5,13 +5,11 @@ namespace backend.Utility.SniffingDog.Implementation
 {
     public class KYCDeepVerificationChecker
     {
-        public class KycVerificationPlugin
+        [KernelFunction("KycCrossCheck")]
+        [Description("Performs a comprehensive KYC analysis and returns a health score from 1 to 10 with explanation. to invoke this method, user must mention sniffing dog")]
+        public string VerifyKycCrossRelation(string kycJson)
         {
-            [KernelFunction("KycCrossCheck")]
-            [Description("Performs a comprehensive KYC analysis and returns a health score from 1 to 10 with explanation.")]
-            public string VerifyKycCrossRelation(string kycJson)
-            {
-                var prompt = $@"
+            var prompt = $@"
 You are an AI trained to detect potential fraud and inconsistencies in KYC (Know Your Customer) data.
 
 Here is the user's KYC information in JSON format:
@@ -31,8 +29,7 @@ Return your response in this JSON format:
   ""Reason"": ""Concise explanation of the result.""
 }}";
 
-                return prompt;
-            }
+            return prompt;
         }
     }
 }
