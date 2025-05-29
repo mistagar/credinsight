@@ -6,6 +6,8 @@ using System;
 using backend.Utility.SniffingDog.Implementation;
 using backend.Utility.SniffingDog.Interface;
 using Microsoft.SemanticKernel;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +17,12 @@ builder.Services.AddDbContext<Context>(options =>
 
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
