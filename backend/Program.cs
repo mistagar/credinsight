@@ -3,6 +3,9 @@ using backend.Services.Interfaces;
 using backend.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
+using backend.Utility.SniffingDog.Implementation;
+using backend.Utility.SniffingDog.Interface;
+using Microsoft.SemanticKernel;
 
 var builder = WebApplication.CreateBuilder(args);
 
