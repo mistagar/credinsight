@@ -3,7 +3,9 @@ using backend.Services.Interfaces;
 using backend.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Text.Json.Serialization;
+using backend.Utility.SniffingDog.Implementation;
+using backend.Utility.SniffingDog.Interface;
+using Microsoft.SemanticKernel;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,18 +30,39 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers().AddJsonOptions(options =>
+// Build Semantic Kernel
+builder.Services.AddSingleton(_ =>
 {
-    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-    options.JsonSerializerOptions.WriteIndented = true; // optional, for readability
+    var kernelBuilder = Kernel.CreateBuilder();
+    kernelBuilder.AddAzureOpenAIChatCompletion(
+        "",
+        "",
+        ""
+
+    );
+
+    var kernel = kernelBuilder.Build();
+    // Register your C# plugin
+    var TransactionCheckerPlugin = new TransactionsCheckerPlugin();
+    var PersonalInfoPlugin = new PersonalInfoCheckerPlugin();
+    var KYCDeepVerificationCheckerPlugin = new KYCDeepVerificationChecker();
+    kernel.Plugins.AddFromObject(TransactionCheckerPlugin, "TransactionChecker");
+    kernel.Plugins.AddFromObject(PersonalInfoPlugin, "PersonalInfoChecker");
+    kernel.Plugins.AddFromObject(PersonalInfoPlugin, "KYCDeepVerificationChecker");
+    return kernel;
 });
+
+// Register as a general assistant
+builder.Services.AddScoped<IMainService, MainService>();
+
+
 
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<Context>();
-    SeedData.Initialize(dbContext); 
+    SeedData.Initialize(dbContext);
 }
 
 if (app.Environment.IsDevelopment())

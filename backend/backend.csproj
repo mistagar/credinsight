@@ -9,7 +9,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.26" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.26" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.26" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.54.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.54.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.54.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.54.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
