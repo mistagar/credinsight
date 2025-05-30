@@ -8,6 +8,7 @@ using backend.Utility.SniffingDog.Interface;
 using Microsoft.SemanticKernel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,23 +44,27 @@ builder.Services.AddSingleton(_ =>
 {
     var kernelBuilder = Kernel.CreateBuilder();
     kernelBuilder.AddAzureOpenAIChatCompletion(
-        "",
-        "",
-        ""
-
+        apiKey: "",
+        endpoint: "",
+        deploymentName: ""
     );
 
-    var kernel = kernelBuilder.Build();
-    // Register your C# plugin
-    var TransactionCheckerPlugin = new TransactionsCheckerPlugin();
-    var PersonalInfoPlugin = new PersonalInfoCheckerPlugin();
-    var LocationCheckerPlugin = new LocationCheckerPlugin();
-    var KYCDeepVerificationCheckerPlugin = new KYCDeepVerificationChecker();
-    kernel.Plugins.AddFromObject(TransactionCheckerPlugin, "TransactionChecker");
-    kernel.Plugins.AddFromObject(PersonalInfoPlugin, "PersonalInfoChecker");
-    kernel.Plugins.AddFromObject(PersonalInfoPlugin, "KYCDeepVerificationChecker");
-    kernel.Plugins.AddFromObject(LocationCheckerPlugin, "LocationChecker");
-    return kernel;
+        var kernel = kernelBuilder.Build();
+        // Register your C# plugin
+        var TransactionCheckerPlugin = new TransactionsCheckerPlugin();
+        var PersonalInfoPlugin = new PersonalInfoCheckerPlugin();
+        var KYCDeepVerificationCheckerPlugin = new KYCDeepVerificationChecker();
+        kernel.Plugins.AddFromObject(TransactionCheckerPlugin, "TransactionChecker");
+        kernel.Plugins.AddFromObject(PersonalInfoPlugin, "PersonalInfoChecker");
+        kernel.Plugins.AddFromObject(KYCDeepVerificationCheckerPlugin, "KYCDeepVerificationChecker");
+        return kernel;
+    });
+    
+// Configure JSON options
+builder.Services.Configure<JsonOptions>(options => 
+{
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+    options.SerializerOptions.WriteIndented = true; //for readability
 });
 
 // Register as a general assistant
