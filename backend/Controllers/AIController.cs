@@ -3,9 +3,11 @@ using backend.Utility.SniffingDog.Implementation;
 using Microsoft.AspNetCore.Mvc;
 using backend.Data;
 using backend.Models;
+using backend.DTOs;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using backend.Services.Interfaces;
 
 namespace backend.Controllers
 {
@@ -13,34 +15,46 @@ namespace backend.Controllers
     [ApiController]
     public class AIController : ControllerBase
     {
-        private readonly IMainService _mainService;
+        private readonly IRateLimitedAIService _rateLimitedAIService;
         private readonly CredContext _context;
+        private readonly ILogger<AIController> _logger;
 
-        public AIController(IMainService mainService, CredContext context)
+        public AIController(IRateLimitedAIService rateLimitedAIService, CredContext context, ILogger<AIController> logger)
         {
-            _mainService = mainService;
+            _rateLimitedAIService = rateLimitedAIService;
             _context = context;
+            _logger = logger;
         }
-
         [HttpPost("send-message")]
         public async Task<IActionResult> SendMessage([FromBody] string userInput)
         {
-            if (string.IsNullOrWhiteSpace(userInput))
+            try
             {
-                return BadRequest("User input cannot be empty.");
+                if (string.IsNullOrWhiteSpace(userInput))
+                {
+                    return BadRequest("User input cannot be empty.");
+                }
+
+                var response = await _rateLimitedAIService.SendMessageWithRetryAsync(userInput);
+                return Ok(response);
             }
-
-            var response = await _mainService.SendMessageAsync(userInput);
-            return Ok(response);
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "AI service temporarily unavailable");
+                return StatusCode(503, new { error = "AI service is temporarily unavailable due to rate limiting. Please try again later." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in send message");
+                return StatusCode(500, $"Error processing request: {ex.Message}");
+            }
         }
-
         [HttpGet("chat-history")]
         public IActionResult GetChatHistory()
         {
-            var history = _mainService.GetChatHistory();
+            var history = _rateLimitedAIService.GetChatHistory();
             return Ok(history);
         }
-
         [HttpPost("add-system-message")]
         public IActionResult AddSystemMessage([FromBody] string message)
         {
@@ -49,7 +63,7 @@ namespace backend.Controllers
                 return BadRequest("System message cannot be empty.");
             }
 
-            _mainService.AddSystemMessage(message);
+            _rateLimitedAIService.AddSystemMessage(message);
             return NoContent();
         }
 
@@ -113,12 +127,10 @@ Focus on:
 - Geographic and device patterns
 - Any suspicious activity indicators
 
-Provide your response in a structured markdown format that includes specific insights about potential fraud indicators, money laundering risks, and overall customer reliability.";
+Provide your response in a structured markdown format that includes specific insights about potential fraud indicators, money laundering risks, and overall customer reliability.";                // Add system message for risk assessment context
+                _rateLimitedAIService.AddSystemMessage("You are a professional financial risk assessment AI. Provide thorough, accurate, and actionable risk analysis based on customer transaction and behavioral data. Your assessments help financial institutions make informed decisions about customer risk levels.");
 
-                // Add system message for risk assessment context
-                _mainService.AddSystemMessage("You are a professional financial risk assessment AI. Provide thorough, accurate, and actionable risk analysis based on customer transaction and behavioral data. Your assessments help financial institutions make informed decisions about customer risk levels.");
-
-                var aiResponse = await _mainService.SendMessageAsync(prompt);                // Parse the AI response to extract risk score and level
+                var aiResponse = await _rateLimitedAIService.SendMessageWithRetryAsync(prompt);// Parse the AI response to extract risk score and level
                 var riskAssessment = ParseAIRiskResponse(aiResponse, customerId);
 
                 // Save the assessment to the database
@@ -137,8 +149,18 @@ Provide your response in a structured markdown format that includes specific ins
                     TransactionAnalysis = transactionAnalysisResult.TransactionAnalysis
                 });
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("rate limit") || ex.Message.Contains("temporarily unavailable"))
+            {
+                _logger.LogWarning(ex, "AI service rate limited during risk assessment for customer {CustomerId}", customerId);
+                return StatusCode(503, new
+                {
+                    error = "AI service is temporarily unavailable due to rate limiting. Please try again in a few minutes.",
+                    details = "The risk assessment requires AI analysis which is currently rate limited."
+                });
+            }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error performing AI risk assessment for customer {CustomerId}", customerId);
                 return StatusCode(500, $"Error performing AI risk assessment: {ex.Message}");
             }
         }
@@ -193,12 +215,10 @@ Provide your response in a structured markdown format that includes specific ins
                 var transactionJson = JsonSerializer.Serialize(customerTransactions);
 
                 // Get the AI analysis prompt
-                var analysisPrompt = transactionPlugin.AnalyzeTransaction(transactionJson);
+                var analysisPrompt = transactionPlugin.AnalyzeTransaction(transactionJson);                // Add system message for transaction analysis context
+                _rateLimitedAIService.AddSystemMessage("You are a transaction pattern analyst AI. Analyze financial transactions for suspicious patterns, anomalies, and potential fraud indicators. Respond strictly in JSON format with healthStatus, suspicionLevel, variationFromNorm, and explanation fields.");
 
-                // Add system message for transaction analysis context
-                _mainService.AddSystemMessage("You are a transaction pattern analyst AI. Analyze financial transactions for suspicious patterns, anomalies, and potential fraud indicators. Respond strictly in JSON format with healthStatus, suspicionLevel, variationFromNorm, and explanation fields.");
-
-                var aiTransactionAnalysis = await _mainService.SendMessageAsync(analysisPrompt);
+                var aiTransactionAnalysis = await _rateLimitedAIService.SendMessageWithRetryAsync(analysisPrompt);
 
                 // Parse the JSON response from AI
                 var transactionAnalysisData = ParseTransactionAnalysisResponse(aiTransactionAnalysis, customer.Id);
@@ -288,6 +308,151 @@ Provide your response in a structured markdown format that includes specific ins
                 return property.GetString() ?? defaultValue;
             }
             return defaultValue;
+        }
+
+        [HttpPost("analyze-transactions")]
+        public async Task<IActionResult> AnalyzeTransactions([FromBody] TransactionAnalysisRequest request)
+        {
+            try
+            {
+                if (request.Transactions == null || !request.Transactions.Any())
+                {
+                    return BadRequest("No transactions provided for analysis.");
+                }
+
+                var transactionChecker = new TransactionsCheckerPlugin();
+
+                // Create a sample transaction for analysis
+                var newTransaction = new
+                {
+                    TransactionId = $"NEW_{DateTime.UtcNow:yyyyMMddHHmmss}",
+                    UserId = request.CustomerId,
+                    Category = "transfer",
+                    Amount = request.Transactions.FirstOrDefault()?.Amount ?? 1000,
+                    Date = DateTime.UtcNow
+                };
+
+                var transactionJson = JsonSerializer.Serialize(newTransaction);
+                var prompt = transactionChecker.AnalyzeTransaction(transactionJson);                // Add system message for transaction analysis
+                _rateLimitedAIService.AddSystemMessage("You are a financial fraud analyst AI. Analyze transaction patterns and provide assessment in the exact JSON format requested.");
+
+                var aiResponse = await _rateLimitedAIService.SendMessageWithRetryAsync(prompt); return Ok(new { analysis = aiResponse });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("rate limit") || ex.Message.Contains("temporarily unavailable"))
+            {
+                _logger.LogWarning(ex, "AI service rate limited during transaction analysis");
+                return StatusCode(503, new
+                {
+                    error = "AI service is temporarily unavailable due to rate limiting. Please try again in a few minutes."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error analyzing transactions: {Error}", ex.Message);
+                return StatusCode(500, $"Error analyzing transactions: {ex.Message}");
+            }
+        }
+
+        [HttpPost("analyze-location")]
+        public async Task<IActionResult> AnalyzeLocation([FromBody] LocationAnalysisRequest request)
+        {
+            try
+            {
+                if (request.LoginActivities == null || !request.LoginActivities.Any())
+                {
+                    return BadRequest("No login activities provided for analysis.");
+                }
+
+                var locationChecker = new LocationCheckerPlugin();
+
+                // Convert login activities to the format expected by the plugin
+                var customerTransactions = request.LoginActivities.Select(l => new
+                {
+                    TransactionId = l.TransactionId,
+                    UserId = l.UserId,
+                    Location = l.Location,
+                    IPAddress = l.IPAddress,
+                    Date = l.Date
+                }).ToList();
+
+                var customerJson = JsonSerializer.Serialize(customerTransactions, new JsonSerializerOptions { WriteIndented = true });
+
+                // Get test blacklisted data from the plugin
+                var testPrompt = locationChecker.RunTestPrompt();
+
+                // Extract blacklisted data from the test prompt
+                var blacklistedJson = ExtractBlacklistedDataFromPrompt(testPrompt);
+
+                var prompt = locationChecker.AnalyzeRelationshipWithBlacklisted(customerJson, blacklistedJson);                // Add system message for location analysis
+                _rateLimitedAIService.AddSystemMessage("You are an AI fraud analyst specializing in location and IP address pattern analysis. Analyze the provided data for suspicious overlaps and patterns.");
+
+                var aiResponse = await _rateLimitedAIService.SendMessageWithRetryAsync(prompt); return Ok(new { analysis = aiResponse });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("rate limit") || ex.Message.Contains("temporarily unavailable"))
+            {
+                _logger.LogWarning(ex, "AI service rate limited during location analysis");
+                return StatusCode(503, new
+                {
+                    error = "AI service is temporarily unavailable due to rate limiting. Please try again in a few minutes."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error analyzing location: {Error}", ex.Message);
+                return StatusCode(500, $"Error analyzing location: {ex.Message}");
+            }
+        }
+
+        private string ExtractBlacklistedDataFromPrompt(string testPrompt)
+        {
+            // Extract the blacklisted transactions section from the test prompt
+            var blacklistedMatch = Regex.Match(testPrompt, @"Blacklisted Users Transaction Log:\s*(\[.*?\])", RegexOptions.Singleline);
+            if (blacklistedMatch.Success)
+            {
+                return blacklistedMatch.Groups[1].Value;
+            }
+
+            // Fallback: create some mock blacklisted data
+            var blacklistedTransactions = new List<object>();
+            for (int i = 1; i <= 10; i++)
+            {
+                blacklistedTransactions.Add(new
+                {
+                    TransactionId = $"BLK{i}",
+                    UserId = $"blacklistedUser{i}",
+                    Location = i % 2 == 0 ? "Lagos" : "Abuja",
+                    IPAddress = i % 2 == 0 ? "192.168.1.10" : "172.16.0.5",
+                    Date = DateTime.UtcNow.AddDays(-i).ToString("s")
+                });
+            }
+
+            return JsonSerializer.Serialize(blacklistedTransactions, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        [HttpGet("health")]
+        public async Task<IActionResult> GetHealthStatus()
+        {
+            try
+            {
+                var isAvailable = await _rateLimitedAIService.IsServiceAvailableAsync();
+
+                return Ok(new
+                {
+                    status = isAvailable ? "healthy" : "unavailable",
+                    message = isAvailable ? "AI service is available" : "AI service is temporarily unavailable",
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking AI service health");
+                return StatusCode(503, new
+                {
+                    status = "error",
+                    message = "Unable to check AI service status",
+                    timestamp = DateTime.UtcNow
+                });
+            }
         }
     }
 }

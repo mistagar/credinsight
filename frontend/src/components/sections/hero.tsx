@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { FadeIn } from "@/components/animations/fade-in"
 import { ChevronRightIcon, CheckIcon, LightningBoltIcon, EyeOpenIcon } from "@radix-ui/react-icons"
+import Link from "next/link"
 
 export function HeroSection() {
     return (
@@ -97,7 +98,7 @@ export function HeroSection() {
                                     <ChevronRightIcon className="w-5 h-5" />
                                 </motion.span>
                             </Button>
-                            <Button variant="outline" size="lg" className="px-8 py-3 text-lg">
+                            {/* <Button variant="outline" size="lg" className="px-8 py-3 text-lg">
                                 <motion.span
                                     whileHover={{ scale: 1.05 }}
                                     className="flex items-center gap-2"
@@ -105,7 +106,10 @@ export function HeroSection() {
                                     <EyeOpenIcon className="w-5 h-5" />
                                     Watch Demo
                                 </motion.span>
-                            </Button>
+                            </Button> */}
+                            <Link href='/customers'>
+                                <Button size='lg'>Go to Customer Dashboard</Button>
+                            </Link>
                         </div>
                     </FadeIn>
 

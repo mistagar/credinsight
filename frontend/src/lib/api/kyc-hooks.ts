@@ -32,9 +32,11 @@ export function useKYCAnalysis() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(formattedData),
-            });
-
-            if (!response.ok) {
+            }); if (!response.ok) {
+                if (response.status === 503) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'AI service is temporarily unavailable due to rate limiting. Please try again in a few minutes.');
+                }
                 throw new Error('Failed to perform KYC analysis');
             }
 
