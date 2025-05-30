@@ -35,14 +35,14 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AddCustomerForm } from '@/components/forms/add-customer-form';
 import {
   useCustomers,
   useCustomerStats,
-  useAssessCustomerRisk,
 } from '@/lib/api/customer-hooks';
 import { RiskLevel } from '@/lib/api/types';
+import { AIRiskAnalyzer } from '@/components/sections/ai-risk-analyzer';
 
 export default function CustomerDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -189,7 +189,6 @@ export default function CustomerDashboard() {
       </motion.div>
       {/* Key Metrics Cards */}
       <motion.div variants={itemVariants} className='grid gap-4 md:grid-cols-3'>
-        {' '}
         <motion.div
           variants={cardHoverVariants}
           whileHover='hover'
@@ -217,7 +216,7 @@ export default function CustomerDashboard() {
               {stats?.recentActivity?.lastMonth || 0}% vs last month
             </div>
           </div>
-        </motion.div>{' '}
+        </motion.div>
         <motion.div
           variants={cardHoverVariants}
           whileHover='hover'
@@ -268,7 +267,7 @@ export default function CustomerDashboard() {
             <div className='text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent'>
               {stats?.activeUsers || 0}
             </div>
-            <motion.div
+            {/* <motion.div
               className='flex mt-2'
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -299,7 +298,7 @@ export default function CustomerDashboard() {
                   </Avatar>
                 </motion.div>
               ))}
-            </motion.div>
+            </motion.div> */}
           </div>
         </motion.div>
       </motion.div>
@@ -403,8 +402,8 @@ export default function CustomerDashboard() {
                                     customer.riskLevel === RiskLevel.High
                                       ? 'bg-gradient-to-r from-red-600 to-red-500'
                                       : customer.riskLevel === RiskLevel.Medium
-                                      ? 'bg-gradient-to-r from-yellow-600 to-yellow-500'
-                                      : 'bg-gradient-to-r from-green-600 to-green-500'
+                                        ? 'bg-gradient-to-r from-yellow-600 to-yellow-500'
+                                        : 'bg-gradient-to-r from-green-600 to-green-500'
                                   }
                                 />
                               </div>
@@ -415,7 +414,10 @@ export default function CustomerDashboard() {
                           </TableCell>
                           <TableCell className='text-right'>
                             <div className='flex gap-2 justify-end'>
-                              <AssessRiskButton customerId={customer.id} />
+                              <AIRiskAssessButton
+                                customerId={customer.id}
+                                customerName={customer.fullName}
+                              />
                               <Link href={`/customers/${customer.id}`}>
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
@@ -497,31 +499,34 @@ function RiskLevelBadge({ riskLevel }: { riskLevel: RiskLevel }) {
   }
 }
 
-// Component for risk assessment button
-function AssessRiskButton({ customerId }: { customerId: string }) {
-  const assessRiskMutation = useAssessCustomerRisk();
-
-  const handleAssessRisk = async () => {
-    try {
-      await assessRiskMutation.mutateAsync(customerId);
-    } catch (error) {
-      console.error('Error assessing risk:', error);
-    }
-  };
+// Component for AI risk assessment dialog
+function AIRiskAssessButton({ customerId, customerName }: { customerId: string; customerName: string }) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`py-1 px-3 text-sm rounded-md ${
-        assessRiskMutation.isPending
-          ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 cursor-not-allowed'
-          : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700'
-      }`}
-      onClick={handleAssessRisk}
-      disabled={assessRiskMutation.isPending}
-    >
-      {assessRiskMutation.isPending ? 'Assessing...' : 'Assess Risk'}
-    </motion.button>
+    <Dialog
+      open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="py-1 px-3 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+        >
+          AI Assess
+        </motion.button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>AI Risk Assessment - {customerName}</DialogTitle>
+          <DialogDescription>
+            Real-time AI-powered risk analysis
+          </DialogDescription>
+        </DialogHeader>
+        <AIRiskAnalyzer
+          customerId={customerId}
+          customerName={customerName}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
