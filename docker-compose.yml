@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./api:/src/api
+
+  web:
+    build:
+      context: .
+      dockerfile: ./web/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=http://localhost:5000
+    depends_on:
+      - api

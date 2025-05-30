@@ -1,0 +1,9 @@
+{
+  "name": "Fullstack Dev Container",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "dotnet restore ./api && yarn --cwd ./web install",
+  "forwardPorts": [3000, 5000],
+  "remoteUser": "vscode"
+}
