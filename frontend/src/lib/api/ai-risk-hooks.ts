@@ -39,28 +39,34 @@ export function useAIRiskAssessment(): UseAIRiskAssessmentReturn {
                     },
                 });
 
+                console.log('AI Risk Assessment Response:', response);
+
                 if (!response.ok) {
                     throw new Error(`Assessment failed: ${response.statusText}`);
-                }
-
-                const data = await response.json();
+                } const data = await response.json();
                 const analysisText = data.aiAnalysis || '';
 
-                // Extract risk score from AI analysis
-                const scoreMatch = analysisText.match(/(?:risk\s+score|score)(?:[:\s]*|:\s*|is\s*)(\d{1,3})/i);
-                const levelMatch = analysisText.match(/risk\s+level(?:[:\s]*|:\s*|is\s*)(\w+)/i);
+                // Extract risk score and level from AI analysis text
+                // Look for patterns like "Risk Score:** 93/100" or "Score: 93"
+                const scoreMatch = analysisText.match(/\*\*Risk\s+Score:\*\*\s*(\d{1,3})(?:\/100)?/i) ||
+                    analysisText.match(/(?:risk\s+score|score)(?:[:\s]*|:\s*|is\s*)(\d{1,3})/i);
 
-                // Start with values from backend
-                let extractedScore = data.assessment.score;
-                let extractedLevel = data.assessment.level as RiskLevel;
+                // Look for patterns like "Risk Level Classification:** High" or "Risk Level: High"
+                const levelMatch = analysisText.match(/\*\*Risk\s+Level\s+Classification:\*\*\s*(\w+)/i) ||
+                    analysisText.match(/risk\s+level(?:[:\s]*|:\s*|is\s*)(\w+)/i);
 
-                // Update score if found in AI analysis
+                // Use AI-extracted values if available, otherwise fall back to backend values
+                let extractedScore = data.assessment.score; // fallback
+                let extractedLevel = data.assessment.level as RiskLevel; // fallback
+
+                // Prioritize AI analysis score
                 if (scoreMatch) {
                     const parsedScore = parseInt(scoreMatch[1], 10);
                     extractedScore = Math.min(100, Math.max(0, parsedScore));
+                    console.log(`AI Score extracted: ${extractedScore} (original: ${data.assessment.score})`);
                 }
 
-                // Update level if found in AI analysis
+                // Prioritize AI analysis level
                 if (levelMatch) {
                     const levelText = levelMatch[1].toLowerCase();
                     if (levelText.includes('high')) {
@@ -70,14 +76,21 @@ export function useAIRiskAssessment(): UseAIRiskAssessmentReturn {
                     } else if (levelText.includes('low')) {
                         extractedLevel = RiskLevel.Low;
                     }
-                }
-
-                const assessmentResult: AIRiskAssessmentResult = {
+                    console.log(`AI Risk Level extracted: ${extractedLevel} (original: ${data.assessment.level})`);
+                } const assessmentResult: AIRiskAssessmentResult = {
                     score: extractedScore,
                     level: extractedLevel,
                     assessmentId: data.assessment.id,
                     analysis: analysisText,
                 };
+
+                console.log('Final Assessment Result:', {
+                    aiScore: extractedScore,
+                    backendScore: data.assessment.score,
+                    aiLevel: extractedLevel,
+                    backendLevel: data.assessment.level,
+                    assessmentId: data.assessment.id
+                });
 
                 // Setup streaming text effect
                 let currentIndex = 0;

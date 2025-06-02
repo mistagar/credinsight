@@ -23,10 +23,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useCustomer } from '@/lib/api/customer-hooks';
 import { RiskLevel } from '@/lib/api/types';
 import { AIRiskAnalyzer } from '@/components/sections/ai-risk-analyzer';
+import { TransactionAnalyzer } from '@/components/sections/transaction-analyzer';
+import { LocationAnalyzer } from '@/components/sections/location-analyzer';
 
 export default function CustomerDetails({ id }: { id: string }) {
     const [activeTab, setActiveTab] = useState<
@@ -590,12 +591,17 @@ export default function CustomerDetails({ id }: { id: string }) {
                                                         </motion.tr>
                                                     ))}
                                                 </AnimatePresence>
-                                            </TableBody>
-                                        </Table>
+                                            </TableBody>                                        </Table>
                                     </div>
                                 )}
                             </div>
                         </div>
+
+                        {/* Transaction Analysis Component */}
+                        <TransactionAnalyzer
+                            customerId={id}
+                            transactions={transactions}
+                        />
                     </motion.div>
                 )}
 
@@ -715,10 +721,15 @@ export default function CustomerDetails({ id }: { id: string }) {
                                                 </AnimatePresence>
                                             </TableBody>
                                         </Table>
-                                    </div>
-                                )}
+                                    </div>)}
                             </div>
                         </div>
+
+                        {/* Location Analysis Component */}
+                        <LocationAnalyzer
+                            customerId={id}
+                            loginActivities={loginActivities}
+                        />
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -1,21 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useKYCAnalysis } from '@/lib/api/kyc-hooks';
 import { motion } from 'framer-motion';
-import { Shield, AlertTriangle, UserCheck, ArrowLeft } from 'lucide-react';
+import { UserCheck, ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 
+interface KYCAnalysisResult {
+    healthStatus: 'mild' | 'moderate' | 'severe' | 'critical';
+    suspicionLevel: 'mild' | 'moderate' | 'severe' | 'critical';
+    emailAuthenticity: 'mild' | 'moderate' | 'severe' | 'critical';
+    nameAuthenticity: 'mild' | 'moderate' | 'severe' | 'critical';
+    explanation: string;
+}
+
 export default function KYCAnalysisPage() {
-    const router = useRouter();
     const searchParams = useSearchParams();
-    const [analysis, setAnalysis] = useState<any>(null);
+    const [analysis, setAnalysis] = useState<KYCAnalysisResult | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const hasPerformedAnalysis = useRef(false);
 
     const kycAnalysisMutation = useKYCAnalysis();
     const customerId = searchParams.get('customerId');
@@ -25,15 +33,18 @@ export default function KYCAnalysisPage() {
     const street = searchParams.get('street');
     const city = searchParams.get('city');
     const region = searchParams.get('region');
-    const postalCode = searchParams.get('postalCode');
-
-    useEffect(() => {
+    const postalCode = searchParams.get('postalCode'); useEffect(() => {
         const performAnalysis = async () => {
+            // Prevent multiple API calls
+            if (hasPerformedAnalysis.current) return;
+
             if (!fullName || !email) {
                 setError('Missing required customer information');
                 setIsLoading(false);
                 return;
             }
+
+            hasPerformedAnalysis.current = true;
 
             try {
                 const result = await kycAnalysisMutation.mutateAsync({
@@ -48,13 +59,14 @@ export default function KYCAnalysisPage() {
                 setAnalysis(result);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to perform KYC analysis');
+                hasPerformedAnalysis.current = false; // Allow retry on error
             } finally {
                 setIsLoading(false);
             }
         };
 
         performAnalysis();
-    }, [fullName, email, phone, street, city, region, postalCode]);
+    }, [fullName, email, phone, street, city, region, postalCode]); // Removed kycAnalysisMutation from dependencies
 
     if (isLoading) {
         return (
@@ -80,23 +92,47 @@ export default function KYCAnalysisPage() {
                 </p>
             </div>
         );
-    }
+    } if (error) {
+        const isRateLimited = error.includes('rate limit') || error.includes('temporarily unavailable');
 
-    if (error) {
         return (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className='p-6 text-red-600 border border-red-300 rounded-lg bg-red-50 dark:bg-red-950/30 dark:border-red-900 dark:text-red-400'
             >
-                <h2 className='mb-2 text-xl font-bold'>Analysis Error</h2>
-                <p>{error}</p>
-                <Link href={customerId ? `/customers/${customerId}` : '/customers'}>
-                    <Button variant="outline" className="mt-4">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        {customerId ? 'Back to Customer Details' : 'Back to Customers'}
-                    </Button>
-                </Link>
+                <h2 className='mb-2 text-xl font-bold'>
+                    {isRateLimited ? 'Service Temporarily Unavailable' : 'Analysis Error'}
+                </h2>
+                <p className="mb-4">{error}</p>
+                {isRateLimited && (
+                    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md dark:bg-yellow-950/30 dark:border-yellow-900">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            💡 The AI analysis service is experiencing high demand. Please wait a few minutes and try again.
+                        </p>
+                    </div>
+                )}
+                <div className="flex gap-3">
+                    <Link href={customerId ? `/customers/${customerId}` : '/customers'}>
+                        <Button variant="outline">
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            {customerId ? 'Back to Customer Details' : 'Back to Customers'}
+                        </Button>
+                    </Link>                    {isRateLimited && (
+                        <Button
+                            onClick={() => {
+                                hasPerformedAnalysis.current = false;
+                                setError(null);
+                                setIsLoading(true);
+                                window.location.reload();
+                            }}
+                            variant="default"
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            Try Again
+                        </Button>
+                    )}
+                </div>
             </motion.div>
         );
     }
