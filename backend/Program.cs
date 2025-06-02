@@ -14,7 +14,7 @@ using backend.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<backend.Data.CredContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CredInsightConnection")));
+    options.UseInMemoryDatabase("CredInsightInMemoryDb"));
 
 
 
@@ -46,8 +46,10 @@ builder.Services.AddSingleton(_ =>
     var kernelBuilder = Kernel.CreateBuilder();
 
     kernelBuilder.AddAzureOpenAIChatCompletion(
-        
-    );
+    apiKey: "",
+    endpoint: "",
+    deploymentName: "",
+    modelId: "");
 
 
 
